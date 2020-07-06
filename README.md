@@ -12,3 +12,9 @@ cd enet-1.2.5
 ldconfig
 ```
 
+# Result
+## ENet by c
+```
+gcc -o c/enet-bench c/enet-bench.c -lenet
+gcc -o c/enet-server c/enet-server.c -lenet
+```
