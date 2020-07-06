@@ -9,6 +9,7 @@
 ENetAddress address; // server host and port
 ENetHost *server; // server
 ENetEvent event;
+ENetPacket *packet;
 
 int main () {
   if (enet_initialize () != 0) {
@@ -31,7 +32,7 @@ int main () {
   printf("listening on %x:%u\n", address.host, address.port);
 
   while (1) {
-    while (enet_host_service(server, &event, 1000) > 0) {
+    while (enet_host_service(server, &event, 5) > 0) {
       switch (event.type) {
 
         case ENET_EVENT_TYPE_CONNECT:
@@ -42,14 +43,18 @@ int main () {
           break;
 
         case ENET_EVENT_TYPE_RECEIVE:
-          printf("a packet of length %ld containing %s was received from %s on channel %u.\n",
-            event.packet -> dataLength,
-            (char*)event.packet -> data,
-            (char*)event.peer -> data,
-            event.channelID);
+          // printf("a packet of length %ld containing %s was received from %s on channel %u.\n",
+          //   event.packet -> dataLength,
+          //   (char*)event.packet -> data,
+          //   (char*)event.peer -> data,
+          //   event.channelID);
+          // printf("a packet of length %ld", event.packet -> dataLength);
+
+          packet = enet_packet_create((char*)event.packet -> data, event.packet -> dataLength, 0);
+          enet_host_broadcast(server, 1, packet);
 
           /* Clean up the packet now that we're done using it. */
-          enet_packet_destroy(event.packet);
+          // enet_packet_destrosy(event.packet);
           break;
 
         case ENET_EVENT_TYPE_DISCONNECT:

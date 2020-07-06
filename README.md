@@ -15,6 +15,10 @@ ldconfig
 # Result
 ## ENet by c
 ```
-gcc -o c/enet-bench c/enet-bench.c -lenet
-gcc -o c/enet-server c/enet-server.c -lenet
+root:~# gcc -o c/enet-server c/enet-server.c -lenet
+root:~# ./c/enet-server
+root:~# gcc -o c/enet-bench c/enet-bench.c -lenet
+root:~# ./c/enet-bench
+Connection to localhost succeeded.
+BenchmarkWriteReliablePacket-ENet-C:   14068   1406 loops/s   710 ms/op
 ```

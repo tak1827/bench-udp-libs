@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <enet/enet.h>
 
 #define HOST "localhost"
@@ -11,6 +12,10 @@ ENetHost *client; // client
 ENetPeer *peer; // conntected peer
 ENetEvent event;
 
+const int expected_packet_size = 1400;
+unsigned char *msg;
+ENetPacket *packet;
+
 char* string_repeat(int n, const char* src) {
   size_t slen = strlen(src);
   char* dest = malloc(n*slen);
@@ -21,6 +26,48 @@ char* string_repeat(int n, const char* src) {
   }
   *p = '\0';
   return dest;
+}
+
+int bench(const unsigned char *name, double benchtime) {
+  clock_t start_t = clock();
+
+  int loops = 0;
+  while (clock() < start_t + benchtime) {
+
+    enet_peer_send(peer, 0, packet);
+
+    while(enet_host_service(client, &event, 5) > 0 && clock() < start_t + benchtime) {
+      switch (event.type) {
+        case ENET_EVENT_TYPE_NONE:
+          break;
+
+        case ENET_EVENT_TYPE_CONNECT:
+          break;
+
+        case ENET_EVENT_TYPE_RECEIVE:
+          // printf("a packet of length %ld containing %s was received from %s on channel %u.\n",
+          //   event.packet -> dataLength,
+          //   (char*)event.packet -> data,
+          //   (char*)event.peer -> data,
+          //   event.channelID);
+          if (event.packet -> dataLength != expected_packet_size + 1) {
+            printf("unexpected packet size, expected: %d, actural: %ld\n", expected_packet_size, event.packet -> dataLength);
+            return 1;
+          }
+          loops += 1;
+          break;
+
+        case ENET_EVENT_TYPE_DISCONNECT:
+          printf("You have been disconnected.\n");
+          return 0;
+      }
+    }
+  }
+
+  int loop_per_s = loops * CLOCKS_PER_SEC / benchtime;
+  int time_per_op = benchtime / loops;
+  printf("%s:   %d   %d loops/s   %d ms/op\n", name, loops, loop_per_s, time_per_op);
+  return 0;
 }
 
 int main () {
@@ -39,7 +86,7 @@ int main () {
   enet_address_set_host(&address, HOST);
   address.port = PORT;
 
-  peer = enet_host_connect(client, &address, 2, 0);
+  peer = enet_host_connect(client, &address, 3, 0);
 
   if (peer == NULL) {
     fprintf (stderr, "no available peers for initiating an ENet connection.\n");
@@ -47,36 +94,23 @@ int main () {
   }
 
   // packet
-  const unsigned char* data = string_repeat(5, "x");
-  ENetPacket *packet = enet_packet_create(data, strlen(data) + 1, ENET_PACKET_FLAG_RELIABLE);
+  msg = string_repeat(expected_packet_size, "x");
+  packet = enet_packet_create(msg, strlen(msg) + 1, ENET_PACKET_FLAG_RELIABLE);
 
   if (enet_host_service(client, &event, 5000) > 0  && event.type == ENET_EVENT_TYPE_CONNECT) {
     printf("Connection to %s succeeded.\n", HOST);
-    enet_peer_send(peer, 0, packet);
+    // enet_peer_send(peer, 0, packet);
   } else {
     enet_peer_reset(peer);
     printf("Could not connect to %s.\n", HOST);
     exit(EXIT_FAILURE);
   }
 
-  while (1) {
-    while (enet_host_service(client, &event, 1000) > 0) {
-      switch (event.type)
-      {
-        case ENET_EVENT_TYPE_NONE:
-          break;
-        case ENET_EVENT_TYPE_CONNECT:
-          break;
-        case ENET_EVENT_TYPE_RECEIVE:
-          puts((char*) event.packet->data);
-          break;
-        case ENET_EVENT_TYPE_DISCONNECT:
-          printf("You have been disconnected.\n");
-          return 0;
-      }
-    }
+  double benchtime = 10 * CLOCKS_PER_SEC; // 10s
+  if (bench("BenchmarkWriteReliablePacket-ENet-C", benchtime) > 0) {
+    return 1;
   }
 
   enet_host_destroy(client);
-  atexit (enet_deinitialize);
+  atexit(enet_deinitialize);
 }
