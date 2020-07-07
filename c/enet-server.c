@@ -31,6 +31,7 @@ int main () {
 
   printf("listening on %x:%u\n", address.host, address.port);
 
+  // int counter = 0;
   while (1) {
     while (enet_host_service(server, &event, 5) > 0) {
       switch (event.type) {
@@ -52,6 +53,9 @@ int main () {
 
           packet = enet_packet_create((char*)event.packet -> data, event.packet -> dataLength, 0);
           enet_host_broadcast(server, 1, packet);
+
+          // counter++;
+          // printf("counter: %d\n", counter);
 
           /* Clean up the packet now that we're done using it. */
           // enet_packet_destrosy(event.packet);

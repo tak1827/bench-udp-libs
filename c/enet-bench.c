@@ -31,12 +31,19 @@ char* string_repeat(int n, const char* src) {
 int bench(const unsigned char *name, double benchtime) {
   clock_t start_t = clock();
 
+  // msg = string_repeat(expected_packet_size, "x");
+  // packet = enet_packet_create(msg, strlen(msg) + 1, ENET_PACKET_FLAG_RELIABLE);
+
+  // 1400 letters message
+  const unsigned char message[] = "hellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohello";
+  packet = enet_packet_create(message, strlen(message) + 1, ENET_PACKET_FLAG_RELIABLE);
+
   int loops = 0;
   while (clock() < start_t + benchtime) {
 
     enet_peer_send(peer, 0, packet);
 
-    while(enet_host_service(client, &event, 5) > 0 && clock() < start_t + benchtime) {
+    while(enet_host_service(client, &event, 5) > 0) {
       switch (event.type) {
         case ENET_EVENT_TYPE_NONE:
           break;
@@ -62,6 +69,9 @@ int bench(const unsigned char *name, double benchtime) {
           return 0;
       }
     }
+    // enet_peer_send(peer, 0, packet);
+    // enet_host_flush(client);
+    // loops++;
   }
 
   int loop_per_s = loops * CLOCKS_PER_SEC / benchtime;
@@ -93,13 +103,8 @@ int main () {
     exit(EXIT_FAILURE);
   }
 
-  // packet
-  msg = string_repeat(expected_packet_size, "x");
-  packet = enet_packet_create(msg, strlen(msg) + 1, ENET_PACKET_FLAG_RELIABLE);
-
   if (enet_host_service(client, &event, 5000) > 0  && event.type == ENET_EVENT_TYPE_CONNECT) {
     printf("Connection to %s succeeded.\n", HOST);
-    // enet_peer_send(peer, 0, packet);
   } else {
     enet_peer_reset(peer);
     printf("Could not connect to %s.\n", HOST);
